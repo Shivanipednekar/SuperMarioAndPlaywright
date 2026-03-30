@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Playwright Quest – Learn Playwright JS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+:root {
+  --gold:#e8b800; --white:#fff; --dark:#1a0a2e;
+  --green:#27ae60; --red:#e74c3c; --blue:#2980b9;
+  --brick:#c0392b; --sky:#5c94fc;
+  --easy:#27ae60; --medium:#e67e22; --hard:#e74c3c;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+
+/* ── Mario sky fills the whole page ── */
+body{
+  font-family:'Press Start 2P',monospace;
+  overflow:hidden;height:100vh;
+  display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#3a6fd8 0%,#5c94fc 35%,#7ab8f5 70%,#8ecfff 100%);
+  position:relative;
+}
+
+/* CSS scrolling clouds layer — sits behind everything */
+body::before,body::after{
+  content:'';
+  position:fixed;top:0;left:0;width:300%;height:100%;
+  pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(ellipse 60px 30px at 80px 80px, rgba(255,255,255,0.82) 80%, transparent 100%),
+    radial-gradient(ellipse 40px 22px at 130px 68px, rgba(255,255,255,0.82) 80%, transparent 100%),
+    radial-gradient(ellipse 50px 26px at 175px 78px, rgba(255,255,255,0.82) 80%, transparent 100%),
+    radial-gradient(ellipse 70px 32px at 360px 55px, rgba(255,255,255,0.75) 80%, transparent 100%),
+    radial-gradient(ellipse 45px 24px at 415px 43px, rgba(255,255,255,0.75) 80%, transparent 100%),
+    radial-gradient(ellipse 55px 28px at 460px 55px, rgba(255,255,255,0.75) 80%, transparent 100%),
+    radial-gradient(ellipse 65px 30px at 660px 90px, rgba(255,255,255,0.70) 80%, transparent 100%),
+    radial-gradient(ellipse 42px 22px at 715px 78px, rgba(255,255,255,0.70) 80%, transparent 100%),
+    radial-gradient(ellipse 52px 26px at 760px 90px, rgba(255,255,255,0.70) 80%, transparent 100%),
+    radial-gradient(ellipse 58px 28px at 960px 65px, rgba(255,255,255,0.78) 80%, transparent 100%),
+    radial-gradient(ellipse 38px 20px at 1010px 54px, rgba(255,255,255,0.78) 80%, transparent 100%),
+    radial-gradient(ellipse 48px 24px at 1055px 65px, rgba(255,255,255,0.78) 80%, transparent 100%),
+    radial-gradient(ellipse 55px 26px at 1250px 100px, rgba(255,255,255,0.65) 80%, transparent 100%),
+    radial-gradient(ellipse 35px 18px at 1298px 90px, rgba(255,255,255,0.65) 80%, transparent 100%),
+    radial-gradient(ellipse 45px 22px at 1340px 100px, rgba(255,255,255,0.65) 80%, transparent 100%),
+    radial-gradient(ellipse 62px 30px at 1550px 75px, rgba(255,255,255,0.72) 80%, transparent 100%),
+    radial-gradient(ellipse 40px 22px at 1605px 63px, rgba(255,255,255,0.72) 80%, transparent 100%),
+    radial-gradient(ellipse 50px 26px at 1650px 75px, rgba(255,255,255,0.72) 80%, transparent 100%);
+  background-size:200% 100%;
+  animation:cloudScroll 35s linear infinite;
+}
+body::after{
+  animation-delay:-17s;
+  opacity:0.6;
+  top:60px;
+  animation-duration:50s;
+}
+@keyframes cloudScroll{
+  from{transform:translateX(0)}
+  to{transform:translateX(-33.33%)}
+}
+
+/* ── HUD sits on top ── */
+#hud{
+  background:linear-gradient(180deg,rgba(0,0,0,0.85),rgba(10,5,40,0.75));
+  backdrop-filter:blur(4px);
+  border-bottom:3px solid var(--gold);
+  padding:8px 16px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:9px;color:#fff;flex-shrink:0;gap:8px;flex-wrap:wrap;
+  z-index:20;position:relative;
+}
+.hud-pill{background:rgba(0,0,0,0.55);border:2px solid var(--gold);border-radius:8px;padding:5px 12px;text-shadow:1px 1px #000;white-space:nowrap;}
+#prog-wrap{flex:1;min-width:100px;max-width:260px;height:12px;background:rgba(0,0,0,0.5);border:2px solid var(--gold);border-radius:8px;overflow:hidden;}
+#prog-bar{height:100%;background:linear-gradient(90deg,#27ae60,#f1c40f);transition:width 0.5s ease;border-radius:8px;}
+
+/* ── WORLD STRIP ── */
+#worldStrip{flex-shrink:0;height:200px;position:relative;overflow:hidden;z-index:5;}
+#worldCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+
+/* ── QUESTION ZONE — transparent so sky shows through ── */
+#game{flex:1;min-height:0;overflow-y:auto;background:transparent;display:flex;align-items:stretch;position:relative;z-index:5;}
+
+/* PANELS */
+#levelPanel{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;gap:8px;position:relative;z-index:6;}
+#topicBadge{
+  border:3px solid var(--gold);border-radius:10px;padding:6px 16px;
+  font-size:8px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;
+  background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);
+  text-shadow:1px 1px #000;
+}
+#questionBox{
+  background:rgba(10,5,40,0.82);
+  backdrop-filter:blur(8px);
+  border:3px solid var(--gold);border-radius:12px;
+  padding:12px 18px;max-width:820px;width:100%;
+  color:#fff;font-size:9px;line-height:1.9;text-align:center;
+  text-shadow:1px 1px #000;
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+.code-block{
+  background:rgba(13,17,23,0.92);
+  backdrop-filter:blur(6px);
+  border:2px solid #30363d;border-radius:10px;
+  padding:10px 14px;margin:6px auto;max-width:780px;width:100%;
+  text-align:left;font-family:'Share Tech Mono',monospace;
+  font-size:12px;line-height:1.7;color:#e6edf3;
+  overflow-x:auto;white-space:pre;display:none;
+  box-shadow:0 4px 16px rgba(0,0,0,0.4);
+}
+.kw{color:#ff7b72;}.fn{color:#d2a8ff;}.str{color:#a5d6ff;}.cmt{color:#8b949e;font-style:italic;}.var{color:#ffa657;}.num{color:#79c0ff;}
+#answers{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:820px;width:100%;}
+.ans-btn{
+  background:rgba(10,30,70,0.75);
+  backdrop-filter:blur(6px);
+  border:2.5px solid var(--blue);border-radius:10px;
+  padding:9px 12px;color:#fff;font-family:'Share Tech Mono',monospace;
+  font-size:12px;cursor:pointer;transition:all .15s;
+  text-align:left;line-height:1.5;
+  text-shadow:1px 1px #000;
+  box-shadow:0 2px 10px rgba(0,0,0,0.3);
+}
+.ans-btn:hover{background:rgba(41,128,185,0.6);transform:scale(1.02);border-color:#5dade2;}
+.ans-btn.correct{background:rgba(39,174,96,0.55);border-color:#27ae60;animation:pop .3s;}
+.ans-btn.wrong{background:rgba(231,76,60,0.55);border-color:#e74c3c;animation:shake .3s;}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}100%{transform:translateX(0)}}
+#explanation{
+  display:none;
+  background:rgba(0,30,10,0.88);
+  backdrop-filter:blur(6px);
+  border:2.5px solid var(--green);border-radius:12px;
+  padding:10px 16px;max-width:820px;width:100%;
+  font-family:'Share Tech Mono',monospace;font-size:12px;color:#aaffaa;line-height:1.7;
+  box-shadow:0 4px 16px rgba(0,0,0,0.4);
+}
+#explanation.show{display:block;animation:fadeIn .3s;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+#nextBtn{display:none;background:var(--gold);color:#000;border:none;border-radius:10px;padding:10px 28px;font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;animation:pulse 1s infinite;box-shadow:0 4px 16px rgba(232,184,0,0.5);}
+#nextBtn.show{display:block;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #e8b80066}50%{box-shadow:0 0 0 8px #e8b80000}}
+#nextBtn:hover{transform:scale(1.05);}
+
+/* TITLE SCREEN */
+#titleScreen{position:fixed;inset:0;background:linear-gradient(180deg,rgba(20,10,60,0.92) 0%,rgba(10,5,30,0.88) 100%);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:100;}
+#titleScreen h1{font-size:clamp(16px,3.5vw,36px);color:var(--gold);text-shadow:3px 3px #000,0 0 30px #e8b800;text-align:center;line-height:1.6;}
+#titleScreen .sub{font-size:clamp(6px,1.3vw,10px);color:#adf;text-align:center;line-height:2;}
+
+/* LEVEL SELECT */
+#levelSelect{position:fixed;inset:0;background:rgba(0,0,20,0.88);backdrop-filter:blur(6px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:100;}
+#levelSelect h2{font-size:clamp(13px,2.5vw,24px);color:var(--gold);text-shadow:2px 2px #000;text-align:center;}
+#levelSelect .sub{font-size:9px;color:#adf;text-align:center;line-height:2;}
+.level-cards{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;max-width:900px;}
+.level-card{background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);border:3px solid #555;border-radius:16px;padding:22px 28px;width:220px;cursor:pointer;transition:all .2s;text-align:center;}
+.level-card:hover{transform:translateY(-6px) scale(1.04);}
+.level-card.easy{border-color:var(--easy);}
+.level-card.easy:hover{box-shadow:0 0 28px #27ae6088;}
+.level-card.medium{border-color:var(--medium);}
+.level-card.medium:hover{box-shadow:0 0 28px #e67e2288;}
+.level-card.hard{border-color:var(--hard);}
+.level-card.hard:hover{box-shadow:0 0 28px #e74c3c88;}
+.level-card .icon{font-size:36px;margin-bottom:10px;}
+.level-card .name{font-size:13px;font-weight:bold;margin-bottom:8px;}
+.level-card.easy .name{color:var(--easy);}
+.level-card.medium .name{color:var(--medium);}
+.level-card.hard .name{color:var(--hard);}
+.level-card .desc{font-family:'Share Tech Mono',monospace;font-size:11px;color:#aaa;line-height:1.7;margin-bottom:10px;}
+.level-card .tags{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:8px;}
+.tag{font-size:8px;padding:3px 7px;border-radius:6px;border:1px solid #555;color:#ddd;}
+.level-card.easy .tag{border-color:var(--easy);color:#aeffae;}
+.level-card.medium .tag{border-color:var(--medium);color:#ffd6aa;}
+.level-card.hard .tag{border-color:var(--hard);color:#ffaaaa;}
+
+/* WIN SCREEN */
+#winScreen{position:fixed;inset:0;background:rgba(0,20,5,0.9);backdrop-filter:blur(6px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:100;color:#fff;}
+#winScreen h1{font-size:clamp(18px,4vw,40px);color:#f1c40f;text-shadow:0 0 20px #f1c40f,2px 2px #000;}
+#winCard{background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);border:3px solid var(--gold);border-radius:14px;padding:20px 36px;text-align:center;font-size:10px;line-height:2.6;}
+#dancingMario{width:80px;height:120px;image-rendering:pixelated;}
+#restartBtn,#changeLevelBtn{border:none;border-radius:10px;padding:11px 24px;font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;margin:4px;}
+#restartBtn{background:var(--gold);color:#000;}
+#changeLevelBtn{background:var(--blue);color:#fff;}
+.win-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}
+
+/* GAME OVER */
+#gameOverScreen{position:fixed;inset:0;background:rgba(40,0,0,0.9);backdrop-filter:blur(6px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:100;color:#fff;}
+#gameOverScreen h1{font-size:clamp(20px,4vw,40px);color:#e74c3c;text-shadow:0 0 20px #e74c3c;}
+#deadMario{width:60px;height:80px;image-rendering:pixelated;}
+
+/* TOAST */
+#toast{position:fixed;top:68px;left:50%;transform:translateX(-50%);padding:9px 22px;border-radius:10px;font-size:10px;color:#fff;z-index:50;opacity:0;transition:opacity .3s;pointer-events:none;text-shadow:1px 1px #000;white-space:nowrap;}
+#toast.show{opacity:1;}
+#toast.good{background:rgba(39,174,96,0.95);border:2px solid #aeffae;}
+#toast.bad{background:rgba(231,76,60,0.95);border:2px solid #ffaaaa;}
+
+/* MARIO SPRITE — fixed so he can jump freely above the world strip */
+#marioSprite{position:fixed;width:44px;height:66px;z-index:15;image-rendering:pixelated;pointer-events:none;}
+
+/* CHEATSHEET */
+#cheatToggle{position:fixed;bottom:14px;right:14px;background:var(--blue);color:#fff;border:2px solid #adf;border-radius:10px;padding:7px 12px;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;z-index:50;}
+#cheatSheet{position:fixed;bottom:54px;right:14px;background:rgba(0,0,0,0.97);border:2px solid var(--blue);border-radius:12px;padding:14px;z-index:50;font-family:'Share Tech Mono',monospace;font-size:11px;color:#adf;max-width:320px;line-height:1.8;display:none;max-height:70vh;overflow-y:auto;}
+#cheatSheet h3{color:var(--gold);font-family:'Press Start 2P',monospace;font-size:8px;margin-bottom:10px;}
+#cheatSheet.open{display:block;}
+
+#startBtn{background:var(--green);color:#fff;border:3px solid #aeffae;border-radius:12px;padding:13px 32px;font-family:'Press Start 2P',monospace;font-size:12px;cursor:pointer;animation:pulse 1s infinite;}
+#startBtn:hover{transform:scale(1.05);}
+@media(max-width:600px){#answers{grid-template-columns:1fr;}.level-cards{flex-direction:column;align-items:center;}}
+
+/* ── Difficulty sky tones ── */
+body.diff-medium{background:linear-gradient(180deg,#7a3500 0%,#c07030 35%,#d08850 70%,#e0a060 100%);}
+body.diff-hard{background:linear-gradient(180deg,#300010 0%,#600030 35%,#882040 70%,#aa3060 100%);}
+body.diff-medium::before,body.diff-medium::after{opacity:0.3;}
+body.diff-hard::before,body.diff-hard::after{opacity:0.12;}
+#diffBadge{font-size:8px;padding:4px 10px;border-radius:8px;font-family:'Press Start 2P',monospace;}
+#diffBadge.easy{background:#145a32;color:#aeffae;border:1px solid var(--easy);}
+#diffBadge.medium{background:#7e5109;color:#ffd6aa;border:1px solid var(--medium);}
+#diffBadge.hard{background:#641e16;color:#ffaaaa;border:1px solid var(--hard);}
+
+#audioBtn,#backBtn{
+  background:rgba(255,255,255,0.08);
+  border:2px solid var(--gold);
+  border-radius:8px;
+  padding:4px 10px;
+  font-family:'Press Start 2P',monospace;
+  font-size:9px;
+  color:#fff;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:background .15s;
+}
+#audioBtn:hover,#backBtn:hover{background:rgba(255,255,255,0.2);}
+#backBtn{border-color:#e74c3c;color:#ffaaaa;}
+#backBtn:hover{background:rgba(231,76,60,0.3);}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="hud-pill">🎭 PLAYWRIGHT QUEST</div>
+  <div class="hud-pill" id="diffBadge" style="display:none"></div>
+  <div class="hud-pill">⭐ <span id="scoreDisp">0</span></div>
+  <div id="prog-wrap"><div id="prog-bar" style="width:0%"></div></div>
+  <div class="hud-pill">Q <span id="qNum">1</span>/<span id="qTotal">?</span></div>
+  <div class="hud-pill" id="livesDisp">❤️❤️❤️</div>
+  <button id="audioBtn" title="Toggle sound (M)">🔊</button>
+  <button id="backBtn" title="Back to level select" style="display:none">← BACK</button>
+</div>
+
+<div id="game">
+  <div id="levelPanel">
+    <div id="topicBadge">TOPIC</div>
+    <div id="questionBox">Loading…</div>
+    <div class="code-block" id="codeBlock"></div>
+    <div id="answers"></div>
+    <div id="explanation"></div>
+    <button id="nextBtn">NEXT ▶</button>
+  </div>
+</div>
+
+<!-- WORLD STRIP — canvas lives here, overflow:hidden keeps bricks contained -->
+<div id="worldStrip">
+  <canvas id="worldCanvas"></canvas>
+</div>
+<!-- Mario sprite lives OUTSIDE the strip so he can jump freely above it -->
+<canvas id="marioSprite" width="44" height="66"></canvas>
+
+<div id="toast"></div>
+
+<button id="cheatToggle">📋 QUICK REF</button>
+<div id="cheatSheet">
+  <h3>⚡ PLAYWRIGHT CHEATSHEET</h3>
+  <b style="color:#f1c40f">Setup</b><br>npm init playwright@latest<br>npx playwright test<br><br>
+  <b style="color:#f1c40f">Navigate</b><br>await page.goto('url')<br><br>
+  <b style="color:#f1c40f">Locators</b><br>page.getByRole('button',{name:'X'})<br>page.getByText('Login')<br>page.getByLabel('Email')<br>page.getByPlaceholder('Search')<br>page.locator('#id .class')<br><br>
+  <b style="color:#f1c40f">Actions</b><br>await locator.click()<br>await locator.fill('text')<br>await locator.press('Enter')<br>await locator.selectOption('val')<br>await locator.check() / uncheck()<br>await locator.hover()<br><br>
+  <b style="color:#f1c40f">Assertions</b><br>await expect(loc).toBeVisible()<br>await expect(loc).toHaveText('x')<br>await expect(loc).toHaveValue('x')<br>await expect(page).toHaveURL('x')<br>await expect(loc).toBeChecked()<br><br>
+  <b style="color:#f1c40f">Waits</b><br>await page.waitForURL('url')<br>await page.waitForResponse('/api')<br>await loc.waitFor()<br><br>
+  <b style="color:#f1c40f">Screenshots</b><br>await page.screenshot({path:'x.png',fullPage:true})<br>await expect(page).toHaveScreenshot()<br><br>
+  <b style="color:#f1c40f">Misc</b><br>await page.evaluate(() => ...)<br>test.only / test.skip<br>--grep @smoke (run tagged tests)<br>npx playwright show-report
+</div>
+
+<!-- TITLE -->
+<div id="titleScreen">
+  <h1>🎭 PLAYWRIGHT<br>QUEST</h1>
+  <div class="sub">Learn Playwright JS through a Mario adventure!<br>Choose your difficulty and start your quest.</div>
+  <button id="startBtn">▶ CHOOSE LEVEL</button>
+</div>
+
+<!-- LEVEL SELECT -->
+<div id="levelSelect">
+  <h2>⚔️ CHOOSE YOUR DIFFICULTY</h2>
+  <div class="sub">Each level covers different Playwright concepts</div>
+  <div class="level-cards">
+    <div class="level-card easy" onclick="startGame('easy')">
+      <div class="icon">🌱</div>
+      <div class="name">EASY</div>
+      <div class="desc">Perfect for beginners.<br>Core commands &amp; syntax.<br>8 questions.</div>
+      <div class="tags">
+        <span class="tag">Setup</span><span class="tag">goto()</span>
+        <span class="tag">click()</span><span class="tag">fill()</span>
+        <span class="tag">toBeVisible</span><span class="tag">getByRole</span>
+      </div>
+    </div>
+    <div class="level-card medium" onclick="startGame('medium')">
+      <div class="icon">🔥</div>
+      <div class="name">MEDIUM</div>
+      <div class="desc">You know the basics.<br>Locators, assertions &amp; waits.<br>10 questions.</div>
+      <div class="tags">
+        <span class="tag">Locators</span><span class="tag">Assertions</span>
+        <span class="tag">Waits</span><span class="tag">Hooks</span>
+        <span class="tag">Screenshots</span><span class="tag">describe()</span>
+      </div>
+    </div>
+    <div class="level-card hard" onclick="startGame('hard')">
+      <div class="icon">💀</div>
+      <div class="name">HARD</div>
+      <div class="desc">Advanced concepts.<br>Tricky edge cases.<br>12 questions.</div>
+      <div class="tags">
+        <span class="tag">Fixtures</span><span class="tag">API Testing</span>
+        <span class="tag">Frames</span><span class="tag">Config</span>
+        <span class="tag">Retry logic</span><span class="tag">evaluate()</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WIN -->
+<div id="winScreen">
+  <h1 id="winTitle">🏆 QUEST COMPLETE!</h1>
+  <canvas id="dancingMario" width="80" height="120"></canvas>
+  <div id="winCard"></div>
+  <div class="win-btns">
+    <button id="restartBtn">🔄 PLAY AGAIN</button>
+    <button id="changeLevelBtn">🎮 CHANGE LEVEL</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameOverScreen">
+  <h1>💀 GAME OVER</h1>
+  <canvas id="deadMario" width="60" height="80"></canvas>
+  <div id="gameOverCard" style="background:rgba(0,0,0,0.6);border:3px solid #e74c3c;border-radius:14px;padding:18px 32px;text-align:center;font-size:10px;line-height:2.4;"></div>
+  <div class="win-btns">
+    <button id="retryBtn" style="background:#e74c3c;color:#fff;border:none;border-radius:10px;padding:11px 24px;font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;">🔄 TRY AGAIN</button>
+    <button id="goLevelBtn" style="background:var(--blue);color:#fff;border:none;border-radius:10px;padding:11px 24px;font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;">🎮 CHANGE LEVEL</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  ALL QUESTIONS
+// ════════════════════════════════════════════════════════════
+const ALL_QUESTIONS = {
+  easy: [
+    {
+      level:"🚀 SETUP",
+      q:"How do you create a new Playwright project from scratch?",
+      code:null,
+      options:["npm init playwright@latest","npm install playwright","npx playwright install","yarn add @playwright/test"],
+      answer:0,
+      explain:"✅ 'npm init playwright@latest' scaffolds everything:\n  → playwright.config.js\n  → sample test files\n  → installs browsers automatically\n\n  It's the ONE command to get started!"
+    },
+    {
+      level:"🚀 SETUP",
+      q:"Which command RUNS all your Playwright tests?",
+      code:null,
+      options:["npx playwright test","npm test run","playwright run --all","npx pw run"],
+      answer:0,
+      explain:"✅ 'npx playwright test' is the main run command.\n  Useful flags:\n  --headed   → see the browser open\n  --ui       → interactive UI mode\n  --debug    → step-by-step debugger"
+    },
+    {
+      level:"🧭 NAVIGATION",
+      q:"How do you navigate to a URL in Playwright?",
+      code:`<span class="kw">test</span>(<span class="str">'go to site'</span>, <span class="kw">async</span> ({ <span class="var">page</span> }) => {
+  <span class="cmt">// Navigate to google.com:</span>
+  ___________________________
+});`,
+      options:["await page.goto('https://google.com')","await page.open('https://google.com')","page.navigate('https://google.com')","await browser.go('https://google.com')"],
+      answer:0,
+      explain:"✅ page.goto(url) — the navigation method.\n  Waits for page load automatically.\n  Options: { waitUntil: 'networkidle' }"
+    },
+    {
+      level:"🔍 LOCATORS",
+      q:"Best way to find a button with the text 'Submit'?",
+      code:`<span class="cmt">// HTML: &lt;button&gt;Submit&lt;/button&gt;</span>`,
+      options:["page.getByRole('button', { name: 'Submit' })","page.locator('button')","page.find('Submit')","page.getByText('button')"],
+      answer:0,
+      explain:"✅ getByRole() is the RECOMMENDED approach!\n  It's resilient and accessible:\n  getByRole('button', {name:'Submit'})\n  getByRole('link', {name:'Home'})\n  getByRole('textbox', {name:'Email'})"
+    },
+    {
+      level:"🖱️ ACTIONS",
+      q:"How do you type text into an input field (clearing it first)?",
+      code:`<span class="kw">const</span> <span class="var">input</span> = <span class="var">page</span>.getByLabel(<span class="str">'Username'</span>);
+<span class="cmt">// Type 'admin':</span>`,
+      options:["await input.fill('admin')","await input.type('admin')","await input.sendKeys('admin')","await input.setValue('admin')"],
+      answer:0,
+      explain:"✅ fill() clears the field first, then types.\n\n  fill() vs type():\n  → fill('text')  — clears + sets value (RECOMMENDED)\n  → type('text')  — simulates real keystrokes"
+    },
+    {
+      level:"🖱️ ACTIONS",
+      q:"How do you click a button?",
+      code:`<span class="kw">const</span> <span class="var">btn</span> = <span class="var">page</span>.getByRole(<span class="str">'button'</span>, {<span class="var">name</span>:<span class="str">'Login'</span>});
+<span class="cmt">// Click it:</span>`,
+      options:["await btn.click()","btn.click()","await page.click(btn)","await btn.press()"],
+      answer:0,
+      explain:"✅ await locator.click() — always await it!\n  Playwright auto-waits for the button to be:\n  ✔ Visible  ✔ Enabled  ✔ Stable\n  before clicking. No manual waits needed!"
+    },
+    {
+      level:"✅ ASSERTIONS",
+      q:"How do you assert that an element is VISIBLE?",
+      code:`<span class="kw">const</span> <span class="var">msg</span> = <span class="var">page</span>.getByText(<span class="str">'Login successful'</span>);
+<span class="cmt">// Assert it's visible:</span>`,
+      options:["await expect(msg).toBeVisible()","await expect(msg).isVisible()","assert(await msg.visible())","expect(msg).toBeTruthy()"],
+      answer:0,
+      explain:"✅ expect(locator).toBeVisible() — auto-retries!\n  It waits up to 5s for the element to appear.\n  Other useful:\n  .toBeHidden()  .toBeEnabled()  .toBeChecked()"
+    },
+    {
+      level:"✅ ASSERTIONS",
+      q:"How do you assert the current page URL after login?",
+      code:`<span class="kw">await</span> <span class="var">page</span>.getByRole(<span class="str">'button'</span>,{<span class="var">name</span>:<span class="str">'Login'</span>}).click();
+<span class="cmt">// Assert URL is /dashboard:</span>`,
+      options:["await expect(page).toHaveURL('/dashboard')","await expect(page.url()).toEqual('/dashboard')","assert(page.currentURL === '/dashboard')","await page.assertURL('/dashboard')"],
+      answer:0,
+      explain:"✅ expect(page).toHaveURL() — works on the PAGE object!\n  Accepts string or regex:\n  .toHaveURL('/dashboard')\n  .toHaveURL(/dashboard/)\n  Auto-retries through redirects!"
+    },
+  ],
+
+  medium: [
+    {
+      level:"🔍 LOCATORS",
+      q:"Find an input using its associated label text:",
+      code:`<span class="cmt">// &lt;label for='e'&gt;Email Address&lt;/label&gt;</span>
+<span class="cmt">// &lt;input id='e' type='email'/&gt;</span>`,
+      options:["page.getByLabel('Email Address')","page.locator('#e')","page.getByText('Email Address')","page.getByName('email')"],
+      answer:0,
+      explain:"✅ getByLabel() finds the INPUT linked to the label.\n  Resolves for/id links automatically.\n  Best practice: use labels, not internal IDs!"
+    },
+    {
+      level:"🔍 LOCATORS",
+      q:"How do you get the THIRD matching element?",
+      code:`<span class="kw">const</span> <span class="var">rows</span> = <span class="var">page</span>.locator(<span class="str">'tr'</span>);
+<span class="cmt">// Get 3rd row (0-indexed):</span>`,
+      options:["rows.nth(2)","rows.get(3)","rows[2]","rows.item(3)"],
+      answer:0,
+      explain:"✅ locator.nth(index) — 0-indexed!\n  nth(0) = first\n  nth(2) = third\n  Also: .first()  .last()  await .count()"
+    },
+    {
+      level:"🖱️ ACTIONS",
+      q:"How do you select a dropdown option by value?",
+      code:`<span class="cmt">// &lt;select id='c'&gt;</span>
+<span class="cmt">//   &lt;option value='in'&gt;India&lt;/option&gt;</span>
+<span class="cmt">// &lt;/select&gt;</span>`,
+      options:["await page.locator('#c').selectOption('in')","await page.locator('#c').fill('India')","await page.locator('#c').click('India')","await page.locator('#c').choose({value:'in'})"],
+      answer:0,
+      explain:"✅ selectOption() is the dropdown method:\n  .selectOption('in')       → by value\n  .selectOption('India')    → by label text\n  .selectOption({index:0})  → by index\n  .selectOption(['a','b'])  → multi-select"
+    },
+    {
+      level:"✅ ASSERTIONS",
+      q:"How do you assert the text content of an element?",
+      code:`<span class="cmt">// &lt;h1&gt;Order Confirmed&lt;/h1&gt;</span>
+<span class="kw">const</span> <span class="var">h</span> = <span class="var">page</span>.getByRole(<span class="str">'heading'</span>);`,
+      options:["await expect(h).toHaveText('Order Confirmed')","await expect(h).toEqual('Order Confirmed')","assert(h.text === 'Order Confirmed')","await expect(h).textContent('Order Confirmed')"],
+      answer:0,
+      explain:"✅ toHaveText() checks text content:\n  .toHaveText('Order Confirmed')  → exact\n  .toHaveText(/confirmed/i)        → regex\n  .toContainText('Order')          → substring\n\n  Regex is great for dynamic content!"
+    },
+    {
+      level:"⏳ WAITS",
+      q:"What's the RIGHT way to wait for an API response?",
+      code:`<span class="cmt">// Wait for POST /api/save BEFORE clicking:</span>
+<span class="kw">const</span> <span class="var">resp</span> = <span class="var">page</span>.waitForResponse(<span class="str">'/api/save'</span>);
+<span class="kw">await</span> <span class="var">page</span>.getByRole(<span class="str">'button'</span>,{<span class="var">name</span>:<span class="str">'Save'</span>}).click();
+<span class="cmt">// Now resolve:</span>`,
+      options:["await resp;","await page.sleep(3000);","await page.waitForTimeout(3000);","await page.networkIdle();"],
+      answer:0,
+      explain:"✅ Promise-first pattern is the right way!\n\n  NEVER use waitForTimeout() in real tests — it's just a sleep, flaky & slow.\n\n  Correct:\n  page.waitForResponse(url)  → specific API\n  page.waitForRequest(url)   → outgoing request\n  locator.waitFor()          → element appears\n  page.waitForURL(url)       → navigation"
+    },
+    {
+      level:"⏳ WAITS",
+      q:"What does Playwright's AUTO-WAIT mean?",
+      code:`<span class="kw">await</span> <span class="var">page</span>.goto(<span class="str">'https://shop.example.com'</span>);
+<span class="kw">await</span> <span class="var">page</span>.getByRole(<span class="str">'button'</span>,{<span class="var">name</span>:<span class="str">'Buy'</span>}).click();
+<span class="cmt">// No explicit waits — will this work?</span>`,
+      options:["YES — Playwright waits for button to be visible & enabled before clicking","NO — you must add waitForSelector() first","Only if button loads within 1 second","Auto-wait only works with getByRole, not locator()"],
+      answer:0,
+      explain:"✅ Auto-wait is Playwright's SUPERPOWER!\n\n  Before every action, Playwright waits for:\n  ✔ Attached to DOM\n  ✔ Visible\n  ✔ Stable (no animation)\n  ✔ Enabled (not disabled)\n  ✔ In viewport\n\n  This makes tests MUCH more stable than Selenium!"
+    },
+    {
+      level:"📸 SCREENSHOTS",
+      q:"How do you take a full-page screenshot?",
+      code:null,
+      options:["await page.screenshot({ path: 'shot.png', fullPage: true })","await page.capture('shot.png')","await page.screenshot('shot.png')","await browser.takeScreenshot({fullPage:true})"],
+      answer:0,
+      explain:"✅ page.screenshot() options:\n  { path: 'file.png' }         → save to disk\n  { fullPage: true }           → full scroll height\n  { clip: {x,y,w,h} }         → region only\n\n  Element screenshot:\n  await locator.screenshot({path:'el.png'})\n\n  Visual regression:\n  await expect(page).toHaveScreenshot('base.png')"
+    },
+    {
+      level:"🧪 TEST STRUCTURE",
+      q:"How do you GROUP related tests in Playwright?",
+      code:`<span class="var">test.describe</span>(<span class="str">'Login Flow'</span>, () => {
+  test(<span class="str">'valid login'</span>, <span class="kw">async</span> ({<span class="var">page</span>}) => {...});
+  test(<span class="str">'invalid login'</span>, <span class="kw">async</span> ({<span class="var">page</span>}) => {...});
+});`,
+      options:["Groups tests and allows shared beforeEach/afterEach hooks within","Makes all tests inside run in parallel automatically","It's just a label — no functional difference","Marks tests as skipped by default"],
+      answer:0,
+      explain:"✅ test.describe() groups tests AND enables scoped hooks:\n\n  test.describe('Checkout', () => {\n    test.beforeEach(async ({ page }) => {\n      await page.goto('/cart');\n    });\n    test('add item', ...);\n    test('remove item', ...);\n  });\n\n  Hooks only apply WITHIN their describe block!"
+    },
+    {
+      level:"🔁 HOOKS",
+      q:"Which hook runs ONCE before ALL tests in a describe?",
+      code:`test.describe(<span class="str">'Orders'</span>, () => {
+  <span class="cmt">// Setup that runs ONCE:</span>
+  _______(<span class="kw">async</span> ({<span class="var">browser</span>}) => {
+    <span class="cmt">// expensive DB seed here</span>
+  });
+  test(<span class="str">'view'</span>, ...); test(<span class="str">'create'</span>, ...);
+});`,
+      options:["test.beforeAll","test.beforeEach","test.setup","test.before"],
+      answer:0,
+      explain:"✅ Playwright hooks:\n  test.beforeAll   → once BEFORE all tests\n  test.afterAll    → once AFTER all tests\n  test.beforeEach  → before EACH test\n  test.afterEach   → after EACH test\n\n  ⚠️ beforeAll gets { browser }, not { page }!"
+    },
+    {
+      level:"🏷️ TAGS",
+      q:"How do you run ONLY tests tagged @smoke?",
+      code:`test(<span class="str">'login @smoke'</span>, <span class="kw">async</span> ({<span class="var">page</span>}) => {...});
+test(<span class="str">'checkout @regression'</span>, <span class="kw">async</span> ({<span class="var">page</span>}) => {...});
+<span class="cmt">// Run command for @smoke only:</span>`,
+      options:["npx playwright test --grep @smoke","npx playwright test --tag smoke","npx playwright test --filter=smoke","npx playwright test smoke.spec.js"],
+      answer:0,
+      explain:"✅ --grep uses regex to filter test names:\n  --grep @smoke         → only smoke tests\n  --grep-invert @smoke  → SKIP smoke tests\n  --grep \"@smoke|@crit\" → smoke OR critical\n\n  Great for CI: smoke on every PR, regression nightly!"
+    }
+  ],
+
+  hard: [
+    {
+      level:"🏗️ FIXTURES",
+      q:"What is a Playwright FIXTURE and why use it?",
+      code:`<span class="cmt">// Custom fixture example:</span>
+<span class="kw">const</span> <span class="var">test</span> = base.extend({
+  loggedInPage: <span class="kw">async</span> ({<span class="var">page</span>}, <span class="var">use</span>) => {
+    <span class="kw">await</span> <span class="var">page</span>.goto(<span class="str">'/login'</span>);
+    <span class="kw">await</span> <span class="var">page</span>.getByLabel(<span class="str">'Password'</span>).fill(<span class="str">'pass'</span>);
+    <span class="kw">await</span> <span class="var">page</span>.getByRole(<span class="str">'button'</span>).click();
+    <span class="kw">await</span> use(<span class="var">page</span>);  <span class="cmt">// hand page to test</span>
+  }
+});`,
+      options:["Reusable setup/teardown injected into tests via destructuring","A type of assertion for visual testing","A way to mock network responses","A browser configuration option"],
+      answer:0,
+      explain:"✅ Fixtures are REUSABLE setup blocks!\n\n  test('add to cart', async ({ loggedInPage }) => {\n    // already logged in — no repeat code!\n    await loggedInPage.goto('/shop');\n  });\n\n  They run before the test and clean up after.\n  Built-in fixtures: page, browser, context, request"
+    },
+    {
+      level:"🌐 API TESTING",
+      q:"How do you make an API request in Playwright WITHOUT opening a browser?",
+      code:`<span class="kw">const</span> { <span class="var">request</span> } = <span class="kw">require</span>(<span class="str">'@playwright/test'</span>);
+
+test(<span class="str">'create order via API'</span>, <span class="kw">async</span> ({ <span class="var">request</span> }) => {
+  <span class="cmt">// POST to API:</span>
+  <span class="kw">const</span> <span class="var">res</span> = <span class="kw">await</span> ____________({
+    data: { sku: <span class="str">'ABC'</span>, qty: <span class="num">2</span> }
+  });
+  expect(<span class="var">res</span>.ok()).toBeTruthy();
+});`,
+      options:["request.post('/api/orders', {...})","page.fetch('/api/orders', {...})","axios.post('/api/orders', {...})","page.request.post('/api/orders', {...})"],
+      answer:0,
+      explain:"✅ The 'request' fixture gives you an API client!\n  request.get(url)     → GET request\n  request.post(url, {data:{}}) → POST\n  request.put(url, {data:{}}) → PUT\n  request.delete(url)  → DELETE\n\n  Great for seeding test data or asserting API responses directly."
+    },
+    {
+      level:"🖼️ FRAMES",
+      q:"How do you interact with an element INSIDE an iframe?",
+      code:`<span class="cmt">// Page has an iframe with id='payment-frame'</span>
+<span class="cmt">// Need to fill card number inside it:</span>`,
+      options:["page.frameLocator('#payment-frame').getByLabel('Card Number')","page.iframe('#payment-frame').locator('input')","page.switchTo().frame('#payment-frame')","page.locator('iframe#payment-frame input')"],
+      answer:0,
+      explain:"✅ frameLocator() is the Playwright way!\n\n  const frame = page.frameLocator('#payment-frame');\n  await frame.getByLabel('Card Number').fill('4111...');\n  await frame.getByRole('button',{name:'Pay'}).click();\n\n  All standard locators work inside frameLocator!\n  ⚠️ Never use switchTo() — that's Selenium syntax."
+    },
+    {
+      level:"⚙️ CONFIG",
+      q:"In playwright.config.js, what does 'use: { baseURL }' do?",
+      code:`<span class="cmt">// playwright.config.js</span>
+<span class="kw">export default</span> defineConfig({
+  use: {
+    baseURL: <span class="str">'https://staging.browntape.com'</span>,
+  }
+});
+<span class="cmt">// In test:</span>
+<span class="kw">await</span> <span class="var">page</span>.goto(<span class="str">'/orders'</span>);`,
+      options:["page.goto('/orders') resolves to 'https://staging.browntape.com/orders'","It sets a fallback URL if the real URL fails","You must still write the full URL in goto()","It only affects page.waitForURL() calls"],
+      answer:0,
+      explain:"✅ baseURL lets you write relative paths in goto()!\n\n  Without baseURL: await page.goto('https://staging.browntape.com/orders')\n  With baseURL:    await page.goto('/orders')\n\n  Makes switching environments (staging→prod) a ONE-LINE config change!"
+    },
+    {
+      level:"⚙️ CONFIG",
+      q:"What does 'retries: 2' in playwright.config.js do?",
+      code:`<span class="kw">export default</span> defineConfig({
+  retries: <span class="num">2</span>,
+  <span class="cmt">// ...</span>
+});`,
+      options:["Automatically re-runs FAILED tests up to 2 more times","Runs every test 2 extra times regardless","Sets the test timeout to 2 seconds","Enables 2 parallel workers"],
+      answer:0,
+      explain:"✅ retries: 2 re-runs ONLY failed tests!\n\n  First run fails → retry 1 → retry 2\n  If it passes on retry → marked as 'flaky' in report\n  If all 3 fail → marked as failed\n\n  Common CI config:\n  retries: process.env.CI ? 2 : 0\n  (no retries locally, retries on CI)"
+    },
+    {
+      level:"🧠 JS IN PAGE",
+      q:"How do you run JavaScript directly in the browser context?",
+      code:`<span class="cmt">// Get the document title using JS:</span>
+<span class="kw">const</span> <span class="var">title</span> = <span class="kw">await</span> <span class="var">page</span>._______(() => {
+  <span class="kw">return</span> document.title;
+});`,
+      options:["page.evaluate(() => document.title)","page.runScript(() => document.title)","page.executeJS(() => document.title)","page.inject(() => document.title)"],
+      answer:0,
+      explain:"✅ page.evaluate() runs JS IN the browser!\n\n  // Pass data to the browser:\n  const count = await page.evaluate((sel) => {\n    return document.querySelectorAll(sel).length;\n  }, '.product-card');\n\n  // Also useful:\n  await page.evaluate(() => window.scrollTo(0, 999))\n  await page.evaluate(() => localStorage.clear())"
+    },
+    {
+      level:"🕵️ DEBUGGING",
+      q:"How do you PAUSE a test mid-run to inspect the browser?",
+      code:`test(<span class="str">'debug checkout'</span>, <span class="kw">async</span> ({<span class="var">page</span>}) => {
+  <span class="kw">await</span> <span class="var">page</span>.goto(<span class="str">'/cart'</span>);
+  <span class="cmt">// PAUSE here to inspect DOM:</span>
+  _______________
+  <span class="kw">await</span> <span class="var">page</span>.getByRole(<span class="str">'button'</span>).click();
+});`,
+      options:["await page.pause()","await page.debug()","debugger;","await page.stop()"],
+      answer:0,
+      explain:"✅ page.pause() opens Playwright Inspector!\n\n  It shows:\n  ✔ Current DOM state\n  ✔ Element picker tool\n  ✔ Step-by-step controls\n  ✔ Auto-generated locator suggestions\n\n  Run with: npx playwright test --debug\n  or set PWDEBUG=1 env variable"
+    },
+    {
+      level:"🔀 PARALLEL",
+      q:"How do you run tests in PARALLEL across multiple files?",
+      code:`<span class="cmt">// playwright.config.js</span>
+<span class="kw">export default</span> defineConfig({
+  ______: <span class="num">4</span>, <span class="cmt">// 4 parallel browsers</span>
+});`,
+      options:["workers: 4","parallel: 4","threads: 4","concurrency: 4"],
+      answer:0,
+      explain:"✅ 'workers' controls parallel browser instances!\n\n  workers: 4         → 4 tests run at same time\n  workers: '50%'     → half your CPU cores\n  workers: 1         → serial (no parallelism)\n\n  Tests in DIFFERENT files run in parallel by default.\n  Tests in SAME file run serially unless you use:\n  test.describe.parallel(() => {...})"
+    },
+    {
+      level:"🎭 CODEGEN",
+      q:"How do you AUTO-GENERATE Playwright test code by recording actions?",
+      code:null,
+      options:["npx playwright codegen https://example.com","npx playwright record https://example.com","npx playwright generate --site https://example.com","playwright auto-test https://example.com"],
+      answer:0,
+      explain:"✅ Codegen is Playwright's built-in recorder!\n\n  npx playwright codegen https://example.com\n\n  Opens a browser + code editor.\n  Every click, fill, navigation → generates test code live!\n\n  Options:\n  --browser firefox  → use Firefox\n  --output test.js   → save to file\n  --viewport-size 375,812 → mobile size"
+    },
+    {
+      level:"🔒 AUTH STATE",
+      q:"How do you REUSE login state across tests (avoid logging in every test)?",
+      code:`<span class="cmt">// Save auth state after login:</span>
+<span class="kw">await</span> <span class="var">page</span>.context().storageState({ 
+  path: <span class="str">'auth.json'</span> 
+});
+<span class="cmt">// playwright.config.js — reuse it:</span>
+use: { storageState: <span class="str">'auth.json'</span> }`,
+      options:["storageState saves cookies/localStorage so tests start pre-logged-in","It re-runs the login test before each test automatically","It only works with Chrome","It stores test results, not auth tokens"],
+      answer:0,
+      explain:"✅ storageState is the BEST way to handle auth!\n\n  1. Create a global-setup.js that logs in once\n  2. Save: await page.context().storageState({path:'auth.json'})\n  3. In config: use: { storageState: 'auth.json' }\n  4. All tests start already logged in!\n\n  Saves HUGE time — no repeated login in every test."
+    },
+    {
+      level:"🌐 NETWORK",
+      q:"How do you MOCK/intercept a network request in Playwright?",
+      code:`<span class="cmt">// Mock GET /api/orders to return fake data:</span>`,
+      options:["await page.route('/api/orders', route => route.fulfill({json:[{id:1}]}))",
+               "await page.intercept('/api/orders', () => [{id:1}])",
+               "page.mockAPI('/api/orders', {data:[{id:1}]})",
+               "await fetch.mock('/api/orders', [{id:1}])"],
+      answer:0,
+      explain:"✅ page.route() intercepts and mocks network requests!\n\n  // Return fake JSON:\n  await page.route('/api/orders', route =>\n    route.fulfill({ json: [{id:1, name:'Test'}] })\n  );\n\n  // Block ads/trackers:\n  await page.route('**/*.{png,jpg}', r => r.abort());\n\n  // Modify real response:\n  await page.route('/api/user', async route => {\n    const resp = await route.fetch();\n    const json = await resp.json();\n    json.role = 'admin';\n    route.fulfill({ json });\n  });"
+    },
+    {
+      level:"🏆 ADVANCED",
+      q:"What does 'test.only()' do and when should you use it?",
+      code:`test.only(<span class="str">'debug this specific test'</span>, <span class="kw">async</span> ({<span class="var">page</span>}) => {
+  <span class="cmt">// Only this test runs in the file</span>
+});`,
+      options:["Runs ONLY this test (skips all others in the file) — for focused debugging","Makes this test run first in the suite","Marks the test as the most important one","Runs this test on all browsers simultaneously"],
+      answer:0,
+      explain:"✅ test.only() is for focused debugging!\n\n  Use it when:\n  ✔ You want to isolate one failing test\n  ✔ Debugging without running the whole suite\n\n  ⚠️ NEVER commit test.only() to main branch!\n  It will silently skip all other tests in CI.\n\n  Similarly:\n  test.skip() → skip this test\n  test.fixme() → mark as broken (won't fail CI)"
+    }
+  ]
+};
+
+// ════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════
+let questions = [];
+let currentQ = 0, score = 0, lives = 3;
+let answered = false;
+let difficulty = 'easy';
+let marioX = 60;
+let animFrame = 0;
+let dancing = false, danceFrame = 0;
+
+// ════════════════════════════════════════════════════════════
+//  BRICKS — one per question, spread across screen L→R
+// ════════════════════════════════════════════════════════════
+let BRICKS = [];
+function initBricks(numQ){
+  BRICKS = [];
+  const strip = document.getElementById('worldStrip');
+  const W = strip.clientWidth || innerWidth;
+  const margin = 80;
+  const step = (W - margin*2) / Math.max(numQ-1, 1);
+  // Heights must fit inside the 200px strip — bricks are 36px tall, ground is ~44px
+  // So max fromBottom = 200 - 36 - 10 = 154, keep between 70 and 140
+  const heights = [100,130,105,140,95,125,110,135,98,128,108,132];
+  for(let i=0;i<numQ;i++){
+    BRICKS.push({
+      x: margin + i*step - 18,
+      fromBottom: heights[i % heights.length],
+      bumpAnim: 0,
+      used: false,
+      isQ: i%2===0
+    });
+  }
+}
+
+// Coin pops from brick hits
+const coinPops=[];
+function spawnCoinPop(brickX, fromBottom){
+  const sh = document.getElementById('worldStrip').clientHeight || 200;
+  coinPops.push({ x:brickX+18, y:sh - fromBottom - 36, vy:-8, life:55 });
+}
+function updateCoinPops(){
+  for(let i=coinPops.length-1;i>=0;i--){
+    const c=coinPops[i];
+    c.y+=c.vy; c.vy+=0.5; c.life--;
+    if(c.life<=0){ coinPops.splice(i,1); continue; }
+    bgX.globalAlpha=c.life/55;
+    bgX.fillStyle='#f1c40f';
+    bgX.beginPath(); bgX.arc(c.x, c.y, 10, 0, Math.PI*2); bgX.fill();
+    bgX.fillStyle='#e8b800';
+    bgX.beginPath(); bgX.arc(c.x, c.y, 6, 0, Math.PI*2); bgX.fill();
+    bgX.fillStyle='#fff'; bgX.font='bold 9px monospace'; bgX.textAlign='center';
+    bgX.fillText('+100', c.x, c.y-14);
+    bgX.textAlign='left'; bgX.globalAlpha=1;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  BG CANVAS
+// ════════════════════════════════════════════════════════════
+const bgC = document.getElementById('worldCanvas');
+const bgX = bgC.getContext('2d');
+let bgScroll = 0;
+
+function resizeBg(){
+  const strip = document.getElementById('worldStrip');
+  bgC.width  = strip.clientWidth  || innerWidth;
+  bgC.height = strip.clientHeight || 200;
+}
+resizeBg(); window.addEventListener('resize', resizeBg);
+
+function drawBg(){
+  const W=bgC.width,H=bgC.height;
+
+  // Clear to transparent — the CSS body sky gradient shows through
+  bgX.clearRect(0,0,W,H);
+
+  // Subtle tint overlay so strip feels slightly distinct from upper zone
+  const tint = difficulty==='easy'?'rgba(92,148,252,0.18)':
+               difficulty==='medium'?'rgba(180,100,20,0.22)':'rgba(60,10,30,0.28)';
+  bgX.fillStyle=tint; bgX.fillRect(0,0,W,H);
+
+  // Scrolling clouds inside the strip
+  bgX.fillStyle='rgba(255,255,255,'+(difficulty==='easy'?'0.65':difficulty==='medium'?'0.25':'0.12')+')';
+  [60,200,370,530,700,870,1050].forEach((cx,i)=>{
+    const x=((cx-bgScroll*0.3)%W+W)%W;
+    const y=18+i%3*14;
+    bgX.beginPath(); bgX.arc(x,y,16,0,Math.PI*2); bgX.fill();
+    bgX.beginPath(); bgX.arc(x+22,y-6,12,0,Math.PI*2); bgX.fill();
+    bgX.beginPath(); bgX.arc(x+40,y,14,0,Math.PI*2); bgX.fill();
+    bgX.fillRect(x,y,40,16);
+  });
+
+  // Ground
+  const gc= difficulty==='easy'?'#5dc44a': difficulty==='medium'?'#8B6914':'#555';
+  const gd= difficulty==='easy'?'#c8a050': difficulty==='medium'?'#6b4f10':'#333';
+  bgX.fillStyle=gc; bgX.fillRect(0,H-44,W,16);
+  bgX.fillStyle=gd; bgX.fillRect(0,H-28,W,28);
+  for(let x=0;x<W;x+=32){ bgX.strokeStyle=difficulty==='easy'?'#b08830':'#444'; bgX.lineWidth=1; bgX.strokeRect(x,H-28,32,28); }
+
+  // Draw fixed bricks that Mario can land on
+  const bc=difficulty==='easy'?'#c0392b':difficulty==='medium'?'#e67e22':'#7f1010';
+  const blight=difficulty==='easy'?'#e74c3c':difficulty==='medium'?'#f39c12':'#c0392b';
+  BRICKS.forEach((b,i)=>{
+    const bumpOff = b.bumpAnim>0 ? -b.bumpAnim : 0;
+    const by = H - b.fromBottom + bumpOff;
+    // Shadow under brick
+    bgX.fillStyle='rgba(0,0,0,0.18)';
+    bgX.fillRect(b.x+2, by+34, 36, 6);
+    // Brick body
+    bgX.fillStyle=bc;
+    bgX.fillRect(b.x, by, 36, 36);
+    // Highlight top
+    bgX.fillStyle=blight;
+    bgX.fillRect(b.x+2, by+2, 32, 4);
+    // Grid lines
+    bgX.strokeStyle='rgba(0,0,0,0.35)'; bgX.lineWidth=2;
+    bgX.strokeRect(b.x, by, 36, 36);
+    bgX.strokeRect(b.x, by+18, 36, 18);
+    bgX.strokeRect(b.x+18, by, 18, 18);
+    // Question mark on Q-blocks
+    if(b.isQ && !b.used){
+      bgX.fillStyle='#fff';
+      bgX.font='bold 18px monospace';
+      bgX.textAlign='center';
+      bgX.fillText('?', b.x+18, by+25);
+      bgX.textAlign='left';
+    } else if(b.used){
+      bgX.fillStyle='rgba(0,0,0,0.3)';
+      bgX.fillRect(b.x+2, by+2, 32, 32);
+    }
+    // Decay bump
+    if(b.bumpAnim>0) b.bumpAnim=Math.max(0,b.bumpAnim-1.5);
+  });
+
+  bgScroll+=0.5;
+}
+
+// ════════════════════════════════════════════════════════════
+//  MARIO SPRITE
+// ════════════════════════════════════════════════════════════
+const mC = document.getElementById('marioSprite');
+const mX = mC.getContext('2d');
+
+function drawMarioWalk(frame,jumping){
+  mX.clearRect(0,0,44,66);
+  mX.fillStyle='#c0392b'; mX.fillRect(9,0,26,9);
+  mX.fillRect(5,9,34,6);
+  mX.fillStyle='#f5cba7'; mX.fillRect(9,15,26,15);
+  mX.fillStyle='#111';
+  mX.fillRect(13,17,5,5); mX.fillRect(26,17,5,5);
+  mX.fillStyle='#6d4c41'; mX.fillRect(11,26,22,4);
+  mX.fillStyle='#e03c28'; mX.fillRect(7,30,30,14);
+  mX.fillStyle='#2980b9'; mX.fillRect(9,32,26,14);
+  mX.fillStyle='#e03c28';
+  const la=jumping?-7:Math.sin(frame*.2)*4;
+  mX.fillRect(0,30+la,9,13); mX.fillRect(35,30-la,9,13);
+  mX.fillStyle='#2980b9';
+  const lL=jumping?-5:Math.sin(frame*.3)*6;
+  const lR=jumping?5:-Math.sin(frame*.3)*6;
+  mX.fillRect(9,46+lL,11,11); mX.fillRect(24,46+lR,11,11);
+  mX.fillStyle='#3d2b1f';
+  mX.fillRect(7,54+Math.max(0,lL),13,7); mX.fillRect(24,54+Math.max(0,lR),13,7);
+}
+
+// Dancing Mario on win screen
+const dC = document.getElementById('dancingMario');
+const dX = dC.getContext('2d');
+
+function drawDance(frame){
+  dX.clearRect(0,0,80,120);
+  const bounce=Math.abs(Math.sin(frame*.18))*12;
+  const spin=Math.sin(frame*.25);
+  const armUp=Math.sin(frame*.18)>0;
+  const y=Math.floor(bounce);
+
+  // Shadow
+  dX.fillStyle='rgba(0,0,0,0.25)';
+  dX.beginPath(); dX.ellipse(40,115,18,5,0,0,Math.PI*2); dX.fill();
+
+  // Translate for bounce
+  dX.save(); dX.translate(0,-y);
+
+  // Hat
+  dX.fillStyle='#c0392b'; dX.fillRect(18,2,44,10);
+  dX.fillRect(12,12,56,8);
+  // Hat star (when arms up)
+  if(armUp){ dX.fillStyle='#f1c40f'; dX.font='14px serif'; dX.fillText('★',34,12); }
+  // Face
+  dX.fillStyle='#f5cba7'; dX.fillRect(18,20,44,24);
+  // Eyes (happy squint when arms up)
+  dX.fillStyle='#111';
+  if(armUp){
+    dX.fillRect(24,28,8,3); dX.fillRect(48,28,8,3);
+  } else {
+    dX.fillRect(24,28,8,8); dX.fillRect(48,28,8,8);
+    dX.fillStyle='#fff'; dX.fillRect(26,30,4,4); dX.fillRect(50,30,4,4);
+  }
+  // Smile
+  dX.strokeStyle='#6d4c41'; dX.lineWidth=3;
+  dX.beginPath(); dX.arc(40,44,10,0,Math.PI); dX.stroke();
+  // Mustache
+  dX.fillStyle='#6d4c41'; dX.fillRect(22,40,36,5);
+  // Body
+  dX.fillStyle='#e03c28'; dX.fillRect(14,44,52,22);
+  dX.fillStyle='#2980b9'; dX.fillRect(18,48,44,20);
+  // Buttons
+  dX.fillStyle='#f1c40f'; dX.fillRect(37,50,6,6); dX.fillRect(37,60,6,6);
+  // Arms (up when dancing)
+  dX.fillStyle='#e03c28';
+  const aAngle = armUp ? -0.9 : Math.sin(frame*.18)*0.5;
+  dX.save(); dX.translate(14,52); dX.rotate(-aAngle-0.3);
+  dX.fillRect(-12,0,12,18); dX.restore();
+  dX.save(); dX.translate(66,52); dX.rotate(aAngle+0.3);
+  dX.fillRect(0,0,12,18); dX.restore();
+  // Legs
+  dX.fillStyle='#2980b9';
+  const lA=Math.sin(frame*.3)*8;
+  dX.save(); dX.translate(22,66); dX.rotate(lA*.04);
+  dX.fillRect(-2,0,14,18); dX.restore();
+  dX.save(); dX.translate(46,66); dX.rotate(-lA*.04);
+  dX.fillRect(-2,0,14,18); dX.restore();
+  // Shoes
+  dX.fillStyle='#3d2b1f';
+  dX.fillRect(16,82+Math.max(0,-lA*.5),16,9);
+  dX.fillRect(48,82+Math.max(0,lA*.5),16,9);
+
+  dX.restore();
+
+  // Music notes
+  if(armUp){
+    const t=frame*0.1;
+    dX.fillStyle=`hsl(${frame*8},100%,70%)`;
+    dX.font='16px serif';
+    dX.fillText('♪',60+Math.sin(t)*4,20+Math.cos(t*1.3)*6);
+    dX.fillText('♫',4+Math.sin(t*0.8)*4,30+Math.cos(t)*5);
+  }
+}
+
+// Dead mario
+const deadC = document.getElementById('deadMario');
+const deadX = deadC.getContext('2d');
+function drawDeadMario(){
+  deadX.clearRect(0,0,60,80);
+  deadX.fillStyle='#c0392b'; deadX.fillRect(12,0,36,10);
+  deadX.fillRect(8,10,44,8);
+  deadX.fillStyle='#f5cba7'; deadX.fillRect(12,18,36,20);
+  deadX.fillStyle='#111'; // X eyes
+  deadX.font='bold 14px monospace';
+  deadX.fillText('X',16,34); deadX.fillText('X',36,34);
+  deadX.fillStyle='#6d4c41'; deadX.fillRect(14,32,32,5);
+  deadX.fillStyle='#e03c28'; deadX.fillRect(10,38,40,18);
+  deadX.fillStyle='#2980b9'; deadX.fillRect(12,42,36,16);
+  // Arms drooping down
+  deadX.fillStyle='#e03c28';
+  deadX.fillRect(0,42,10,20); deadX.fillRect(50,42,10,20);
+  deadX.fillStyle='#2980b9';
+  deadX.fillRect(12,58,14,14); deadX.fillRect(34,58,14,14);
+  deadX.fillStyle='#3d2b1f';
+  deadX.fillRect(8,68,16,8); deadX.fillRect(36,68,16,8);
+}
+drawDeadMario();
+
+// ════════════════════════════════════════════════════════════
+//  PARTICLES
+// ════════════════════════════════════════════════════════════
+const particles=[];
+function spawnParticles(good){
+  const x=marioX+22, y=innerHeight-110;
+  for(let i=0;i<14;i++){
+    particles.push({
+      x,y,vx:(Math.random()-0.5)*8,vy:-(Math.random()*11+4),
+      life:50,
+      color:good?['#f1c40f','#27ae60','#fff','#adf'][Math.floor(Math.random()*4)]:['#e74c3c','#e67e22','#ff8888'][Math.floor(Math.random()*3)],
+      size:Math.random()*8+4
+    });
+  }
+}
+function updateParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.5; p.life--;
+    if(p.life<=0) particles.splice(i,1);
+  }
+}
+function drawParticles(){
+  for(const p of particles){
+    bgX.globalAlpha=p.life/50;
+    bgX.fillStyle=p.color;
+    bgX.fillRect(p.x,p.y,p.size,p.size);
+  }
+  bgX.globalAlpha=1;
+}
+
+// ════════════════════════════════════════════════════════════
+//  MARIO PHYSICS
+//  States: 'ground' | 'rising' | 'onBrick' | 'falling' | 'tumbling' | 'burning'
+// ════════════════════════════════════════════════════════════
+const mSprite = document.getElementById('marioSprite');
+const GROUND_BOTTOM = 70;
+mSprite.style.bottom = GROUND_BOTTOM + 'px';
+
+let mJumpState  = 'ground';
+let mJumpVY     = 0;
+let mJumpBottom = GROUND_BOTTOM;
+let mTargetBrick = null;
+let mCurrentBrickIdx = -1;   // which brick Mario is standing on (-1 = ground)
+let mBurnFrame  = 0;
+let mTumbleVX   = 0;
+let mTumbleRot  = 0;
+
+// Dragon state
+let dragon = { active:false, x:0, y:0, vx:0, fireLife:0, phase:'idle', timer:0 };
+
+// ── helpers ──────────────────────────────────────────────────
+function marioGroundY(){ return GROUND_BOTTOM; }
+function marioBrickY(b){ return b.fromBottom + 36; }  // CSS bottom when standing on b
+
+function startJumpTo(brick){
+  mTargetBrick  = brick;
+  mJumpState    = 'rising';
+  const targetB = marioBrickY(brick);
+  const rise    = targetB - mJumpBottom;
+  mJumpVY       = Math.sqrt(2 * 1.5 * (Math.max(rise,60) + 30));
+}
+
+function marioCorrectJump(){
+  // Jump to next sequential brick
+  const nextIdx = mCurrentBrickIdx + 1;
+  if(nextIdx >= BRICKS.length) return;
+  const brick = BRICKS[nextIdx];
+  // Walk Mario X toward brick centre
+  marioX = brick.x + 18 - 22;
+  startJumpTo(brick);
+}
+
+function marioWrongFall(){
+  // Tumble back to ground from wherever Mario is
+  mJumpState = 'tumbling';
+  mJumpVY    = 4;
+  mTumbleVX  = -2;
+  mTumbleRot = 0;
+  spawnParticles(false);
+}
+
+function triggerDragonDeath(){
+  const sw = document.getElementById('worldStrip').clientWidth || innerWidth;
+  const sh = document.getElementById('worldStrip').clientHeight || 200;
+  dragon = {
+    active: true,
+    x: sw + 60,
+    y: sh - 160,
+    vx: -4,
+    fireLife: 0,
+    phase: 'flying',
+    timer: 0
+  };
+  mJumpState = 'burning';
+  mBurnFrame = 0;
+}
+
+// ── Dragon draw ───────────────────────────────────────────────
+function drawDragon(){
+  if(!dragon.active) return;
+  const dx = dragon.x, dy = dragon.y;
+
+  // Fire breath (shoots left toward Mario)
+  if(dragon.fireLife > 0){
+    for(let f=0;f<dragon.fireLife;f+=18){
+      const fx = dx - 40 - f;
+      const fy = dy + 30 + Math.sin(f*0.3 + dragon.timer*0.2)*8;
+      const r  = 22 - f*0.18;
+      if(r<=0) continue;
+      const g2 = bgX.createRadialGradient(fx,fy,0,fx,fy,r);
+      g2.addColorStop(0,'#fff');
+      g2.addColorStop(0.3,'#ffe000');
+      g2.addColorStop(0.7,'#ff6600');
+      g2.addColorStop(1,'rgba(255,0,0,0)');
+      bgX.fillStyle=g2;
+      bgX.beginPath(); bgX.arc(fx,fy,r,0,Math.PI*2); bgX.fill();
+    }
+  }
+
+  // Body
+  bgX.fillStyle='#2d7a1f';
+  bgX.beginPath(); bgX.ellipse(dx,dy+20,50,28,0,0,Math.PI*2); bgX.fill();
+  // Head
+  bgX.fillStyle='#3a9e28';
+  bgX.beginPath(); bgX.ellipse(dx-50,dy+10,30,22,Math.PI*0.1,0,Math.PI*2); bgX.fill();
+  // Snout
+  bgX.fillStyle='#2d7a1f';
+  bgX.beginPath(); bgX.ellipse(dx-74,dy+16,16,10,-0.2,0,Math.PI*2); bgX.fill();
+  // Nostril fire
+  if(dragon.fireLife>0){
+    bgX.fillStyle='#ff6600';
+    bgX.beginPath(); bgX.arc(dx-84,dy+12,5,0,Math.PI*2); bgX.fill();
+    bgX.fillStyle='#ffe000';
+    bgX.beginPath(); bgX.arc(dx-84,dy+12,2,0,Math.PI*2); bgX.fill();
+  }
+  // Eye
+  bgX.fillStyle='#ff0';
+  bgX.beginPath(); bgX.arc(dx-46,dy+4,6,0,Math.PI*2); bgX.fill();
+  bgX.fillStyle='#000';
+  bgX.beginPath(); bgX.arc(dx-48,dy+4,3,0,Math.PI*2); bgX.fill();
+  // Spines on back
+  bgX.fillStyle='#1a5c10';
+  for(let s=0;s<4;s++){
+    bgX.beginPath();
+    bgX.moveTo(dx-20+s*18,dy-8);
+    bgX.lineTo(dx-12+s*18,dy-28-s*4);
+    bgX.lineTo(dx-4+s*18,dy-8);
+    bgX.fill();
+  }
+  // Wing
+  bgX.fillStyle='rgba(45,122,31,0.7)';
+  bgX.beginPath();
+  bgX.moveTo(dx,dy-8);
+  bgX.quadraticCurveTo(dx+50,dy-60,dx+80,dy-20);
+  bgX.quadraticCurveTo(dx+50,dy-10,dx,dy+10);
+  bgX.fill();
+  // Tail
+  bgX.strokeStyle='#2d7a1f'; bgX.lineWidth=10;
+  bgX.beginPath();
+  bgX.moveTo(dx+48,dy+20);
+  bgX.quadraticCurveTo(dx+90,dy+40,dx+70,dy+60);
+  bgX.stroke();
+}
+
+// ── Burning Mario ─────────────────────────────────────────────
+function drawBurningMario(){
+  mX.clearRect(0,0,44,66);
+  const f = mBurnFrame;
+  // Char/dark Mario
+  mX.fillStyle='#1a0a00';
+  mX.fillRect(9,0,26,9); mX.fillRect(5,9,34,6);
+  mX.fillRect(9,15,26,15); mX.fillRect(7,30,30,24);
+  mX.fillRect(0,30,9,13); mX.fillRect(35,30,9,13);
+  mX.fillRect(9,46,11,11); mX.fillRect(24,46,11,11);
+  mX.fillRect(7,54,13,7); mX.fillRect(24,54,13,7);
+  // Flames overlaid
+  for(let fl=0;fl<6;fl++){
+    const fx = 4+fl*7+Math.sin(f*0.3+fl)*4;
+    const fy = 10+Math.sin(f*0.2+fl*1.3)*6;
+    const fh = 20+Math.cos(f*0.25+fl)*8;
+    const gr = mX.createLinearGradient(fx,fy+fh,fx,fy);
+    gr.addColorStop(0,'rgba(255,100,0,0.9)');
+    gr.addColorStop(0.5,'rgba(255,200,0,0.7)');
+    gr.addColorStop(1,'rgba(255,255,255,0)');
+    mX.fillStyle=gr;
+    mX.beginPath();
+    mX.moveTo(fx,fy+fh);
+    mX.quadraticCurveTo(fx-5,fy+fh*0.5,fx,fy);
+    mX.quadraticCurveTo(fx+5,fy+fh*0.5,fx+6,fy+fh);
+    mX.fill();
+  }
+}
+
+// Convert strip-relative bottom → viewport bottom so fixed sprite stays in sync
+function marioViewportBottom(stripRelativeBottom){
+  const strip = document.getElementById('worldStrip');
+  const stripH = strip.clientHeight || 200;
+  // strip is at the bottom of the viewport; its bottom edge = 0 from viewport bottom
+  return stripRelativeBottom;
+}
+
+// ── Main update ───────────────────────────────────────────────
+function updateMarioSprite(){
+  if(mJumpState === 'rising'){
+    mJumpVY -= 1.5;
+    mJumpBottom += mJumpVY;
+    const landB = marioBrickY(mTargetBrick);
+    if(mJumpVY <= 0 && mJumpBottom <= landB + 6){
+      mJumpBottom    = landB;
+      mJumpVY        = 0;
+      mJumpState     = 'onBrick';
+      mCurrentBrickIdx = BRICKS.indexOf(mTargetBrick);
+      // Bump brick + coin pop
+      mTargetBrick.bumpAnim = 12;
+      if(!mTargetBrick.used){
+        mTargetBrick.used = true;
+        spawnCoinPop(mTargetBrick.x, mTargetBrick.fromBottom);
+      }
+    }
+
+  } else if(mJumpState === 'tumbling'){
+    mJumpVY     -= 1.6;
+    mJumpBottom += mJumpVY;
+    marioX      += mTumbleVX;
+    mTumbleRot  += 0.18;
+    if(mJumpBottom <= GROUND_BOTTOM){
+      mJumpBottom  = GROUND_BOTTOM;
+      mJumpVY      = 0;
+      mTumbleVX    = 0;
+      mJumpState   = 'ground';
+      mCurrentBrickIdx = -1;
+      mTargetBrick = null;
+    }
+
+  } else if(mJumpState === 'burning'){
+    mBurnFrame++;
+    drawBurningMario();
+    // Update dragon
+    if(dragon.active) updateDragon();
+    mSprite.style.left   = marioX + 'px';
+    mSprite.style.bottom = marioViewportBottom(Math.round(mJumpBottom)) + 'px';
+    return; // skip normal draw below
+  }
+
+  mSprite.style.bottom = marioViewportBottom(Math.round(mJumpBottom)) + 'px';
+  mSprite.style.left   = marioX + 'px';
+  animFrame++;
+
+  if(mJumpState === 'tumbling'){
+    // Draw tumbling: rotated Mario
+    mX.clearRect(0,0,44,66);
+    mX.save();
+    mX.translate(22,33);
+    mX.rotate(mTumbleRot);
+    mX.translate(-22,-33);
+    drawMarioWalk(animFrame, true);
+    mX.restore();
+  } else if(!dancing){
+    drawMarioWalk(animFrame, mJumpState==='rising');
+  }
+}
+
+function updateDragon(){
+  dragon.timer++;
+  if(dragon.phase === 'flying'){
+    dragon.x += dragon.vx;
+    // Stop when in middle of screen
+    if(dragon.x < bgC.width * 0.65){
+      dragon.vx   = 0;
+      dragon.phase = 'breathing';
+      dragon.timer = 0;
+    }
+  } else if(dragon.phase === 'breathing'){
+    dragon.fireLife = Math.min(dragon.timer * 5, bgC.width * 0.65 - marioX - 40);
+    if(dragon.timer > 60){
+      dragon.phase = 'done';
+      // Show game over after burn
+      setTimeout(showGameOver, 600);
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  GAME LOOP
+// ════════════════════════════════════════════════════════════
+function loop(){
+  drawBg();
+  drawParticles();
+  updateParticles();
+  updateCoinPops();
+  if(dragon.active) drawDragon();
+  updateMarioSprite();
+  if(dancing){ danceFrame++; drawDance(danceFrame); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ════════════════════════════════════════════════════════════
+//  LOAD QUESTION
+// ════════════════════════════════════════════════════════════
+
+// Shuffle helper — Fisher-Yates
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// For each question we store the shuffled order so handleAnswer can check correctly
+let shuffledOptions=[];   // current question's options in display order
+let shuffledAnswerIdx=0;  // index of the correct option after shuffle
+
+function loadQuestion(){
+  if(currentQ>=questions.length){ showWin(); return; }
+  const q=questions[currentQ];
+  answered=false;
+
+  document.getElementById('qNum').textContent=currentQ+1;
+  document.getElementById('qTotal').textContent=questions.length;
+  document.getElementById('topicBadge').textContent=`Q${currentQ+1}/${questions.length} — ${q.level}`;
+  document.getElementById('questionBox').innerHTML=q.q;
+
+  const cb=document.getElementById('codeBlock');
+  if(q.code){ cb.style.display='block'; cb.innerHTML=q.code; }
+  else cb.style.display='none';
+
+  // Shuffle options, track where the correct answer lands
+  const correctText = q.options[q.answer];
+  shuffledOptions = shuffle(q.options);
+  shuffledAnswerIdx = shuffledOptions.indexOf(correctText);
+
+  const ad=document.getElementById('answers');
+  ad.innerHTML='';
+  shuffledOptions.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='ans-btn';
+    btn.innerHTML=opt.replace(/\n/g,'<br>');
+    btn.onclick=()=>handleAnswer(i);
+    ad.appendChild(btn);
+  });
+
+  document.getElementById('explanation').classList.remove('show');
+  document.getElementById('explanation').style.display='none';
+  document.getElementById('nextBtn').classList.remove('show');
+
+  document.getElementById('prog-bar').style.width=((currentQ/questions.length)*100)+'%';
+}
+
+// ════════════════════════════════════════════════════════════
+//  HANDLE ANSWER
+// ════════════════════════════════════════════════════════════
+function handleAnswer(idx){
+  if(answered) return;
+  answered=true;
+  const q=questions[currentQ];
+  const btns=document.querySelectorAll('.ans-btn');
+  const correct=idx===shuffledAnswerIdx;
+
+  btns[shuffledAnswerIdx].classList.add('correct');
+  if(!correct) btns[idx].classList.add('wrong');
+  btns.forEach(b=>b.style.pointerEvents='none');
+
+  if(correct){
+    const bonus=lives*10;
+    score+=100+bonus;
+    document.getElementById('scoreDisp').textContent=score;
+    marioCorrectJump();
+    showToast('✅ CORRECT! +'+(100+bonus)+' pts','good');
+  } else {
+    lives=Math.max(0,lives-1);
+    updateLivesUI();
+    marioWrongFall();
+    showToast('❌ WRONG! -1 Life','bad');
+    if(lives===0){ setTimeout(triggerDragonDeath, 400); return; }
+  }
+
+  const exp=document.getElementById('explanation');
+  exp.style.display='block';
+  exp.textContent=q.explain;
+  exp.classList.add('show');
+  document.getElementById('nextBtn').classList.add('show');
+}
+
+function updateLivesUI(){
+  document.getElementById('livesDisp').textContent='❤️'.repeat(lives)+'🖤'.repeat(3-lives);
+}
+
+// ════════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════════
+let toastT;
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(toastT); toastT=setTimeout(()=>t.className='',2200);
+}
+
+// ════════════════════════════════════════════════════════════
+//  WIN
+// ════════════════════════════════════════════════════════════
+function showWin(){
+  document.getElementById('prog-bar').style.width='100%';
+  const correct=questions.length-(3-lives<=questions.length?3-lives:questions.length);
+  const pct=Math.round((correct/questions.length)*100);
+  const medal=pct>=90?'🥇':pct>=70?'🥈':'🥉';
+  const diffLabel=difficulty.toUpperCase();
+  const diffColor=difficulty==='easy'?'#27ae60':difficulty==='medium'?'#e67e22':'#e74c3c';
+  document.getElementById('winTitle').textContent='🏆 QUEST COMPLETE!';
+  document.getElementById('winCard').innerHTML=
+    `<span style="color:${diffColor}">${diffLabel} MODE</span><br>
+    ${medal} Final Score: <b style="color:#f1c40f">${score}</b><br>
+    ✅ Correct: <b>${correct}/${questions.length}</b><br>
+    📊 Accuracy: <b>${pct}%</b><br>
+    ❤️ Lives Left: <b>${lives}</b><br><br>
+    <span style="font-size:8px;color:#adf">🎭 Ready to write real Playwright tests!</span>`;
+  dancing=true;
+  danceFrame=0;
+  document.getElementById('winScreen').style.display='flex';
+}
+
+// ════════════════════════════════════════════════════════════
+//  GAME OVER
+// ════════════════════════════════════════════════════════════
+function showGameOver(){
+  document.getElementById('gameOverCard').innerHTML=
+    `Mode: <span style="color:#faa">${difficulty.toUpperCase()}</span><br>
+    Score: <b>${score}</b><br><br>
+    <span style="font-size:9px;color:#faa">💪 Review the cheat sheet and try again!</span>`;
+  document.getElementById('gameOverScreen').style.display='flex';
+}
+
+// ════════════════════════════════════════════════════════════
+//  START GAME
+// ════════════════════════════════════════════════════════════
+function startGame(diff){
+  difficulty=diff;
+  questions=ALL_QUESTIONS[diff];
+  currentQ=0; score=0; lives=3; marioX=50;
+  answered=false; dancing=false; danceFrame=0;
+  mJumpState='ground'; mJumpBottom=GROUND_BOTTOM; mTargetBrick=null;
+  mCurrentBrickIdx=-1; mBurnFrame=0; mTumbleRot=0; mTumbleVX=0;
+  dragon={active:false,x:0,y:0,vx:0,fireLife:0,phase:'idle',timer:0};
+  initBricks(questions.length); coinPops.length=0;
+  marioX = BRICKS.length>0 ? BRICKS[0].x+18-22 : 60;
+  document.getElementById('scoreDisp').textContent=0;
+  document.getElementById('qTotal').textContent=questions.length;
+  updateLivesUI();
+  // Sky changes per difficulty
+  document.body.className = diff==='easy'?'':'diff-'+diff;
+  // Difficulty badge
+  const db=document.getElementById('diffBadge');
+  db.textContent= diff==='easy'?'🌱 EASY': diff==='medium'?'🔥 MEDIUM':'💀 HARD';
+  db.className='hud-pill '+diff;
+  db.style.display='block';
+  document.getElementById('levelSelect').style.display='none';
+  document.getElementById('winScreen').style.display='none';
+  document.getElementById('gameOverScreen').style.display='none';
+  loadQuestion();
+}
+
+// ════════════════════════════════════════════════════════════
+//  BUTTONS & INPUT
+// ════════════════════════════════════════════════════════════
+document.getElementById('startBtn').addEventListener('click',()=>{
+  document.getElementById('titleScreen').style.display='none';
+  document.getElementById('levelSelect').style.display='flex';
+});
+
+document.getElementById('nextBtn').addEventListener('click',()=>{ currentQ++; loadQuestion(); });
+document.getElementById('restartBtn').addEventListener('click',()=>{ dancing=false; startGame(difficulty); });
+document.getElementById('changeLevelBtn').addEventListener('click',()=>{
+  dancing=false;
+  document.getElementById('winScreen').style.display='none';
+  document.getElementById('levelSelect').style.display='flex';
+});
+document.getElementById('retryBtn').addEventListener('click',()=>startGame(difficulty));
+document.getElementById('goLevelBtn').addEventListener('click',()=>{
+  document.getElementById('gameOverScreen').style.display='none';
+  document.getElementById('levelSelect').style.display='flex';
+});
+
+window.addEventListener('keydown',e=>{
+  if(['1','2','3','4'].includes(e.key)) handleAnswer(parseInt(e.key)-1);
+  if(e.key==='Enter'&&answered&&document.getElementById('nextBtn').classList.contains('show')){ currentQ++; loadQuestion(); }
+});
+
+document.getElementById('cheatToggle').addEventListener('click',()=>{
+  document.getElementById('cheatSheet').classList.toggle('open');
+});
+
+// ════════════════════════════════════════════════════════════
+//  WEB AUDIO — synthesized sounds, no files needed
+// ════════════════════════════════════════════════════════════
+let audioEnabled = true;
+let _actx = null;
+function getCtx(){
+  if(!_actx) _actx = new (window.AudioContext||window.webkitAudioContext)();
+  return _actx;
+}
+function tone(type, freqs, dur, vol=0.15){
+  if(!audioEnabled) return;
+  try{
+    const ctx = getCtx();
+    freqs.forEach((f,i)=>{
+      const t0 = ctx.currentTime + i*dur*0.55;
+      const osc = ctx.createOscillator();
+      const g   = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(f, t0);
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+      osc.start(t0); osc.stop(t0+dur);
+    });
+  }catch(e){}
+}
+const SFX = {
+  jump:    ()=> tone('square',[300,500],0.1,0.12),
+  land:    ()=> tone('square',[180,220],0.07,0.1),
+  correct: ()=>{ tone('square',[523,659,784],0.09,0.14); setTimeout(()=>tone('sine',[1046],0.1,0.18),220); },
+  wrong:   ()=> tone('sawtooth',[220,160,110],0.11,0.14),
+  coin:    ()=> tone('sine',[900,1300],0.07,0.09),
+  tumble:  ()=> tone('sawtooth',[280,190,130],0.1,0.13),
+  dragon:  ()=> tone('sawtooth',[90,65,45],0.22,0.22),
+  win:     ()=>{ [523,659,784,1046,784,1046,1318].forEach((f,i)=>setTimeout(()=>tone('square',[f],0.13,0.16),i*115)); },
+};
+
+// Patch existing game events with sound
+const _origMarioCorrectJump = marioCorrectJump;
+marioCorrectJump = function(){
+  SFX.jump();
+  _origMarioCorrectJump();
+};
+const _origMarioWrongFall = marioWrongFall;
+marioWrongFall = function(){
+  SFX.wrong(); SFX.tumble();
+  _origMarioWrongFall();
+};
+const _origTriggerDragon = triggerDragonDeath;
+triggerDragonDeath = function(){
+  SFX.dragon();
+  _origTriggerDragon();
+};
+const _origShowWin = showWin;
+showWin = function(){
+  SFX.win();
+  _origShowWin();
+};
+
+// Patch updateMarioSprite to add land + coin sounds
+const _origUpdateMario = updateMarioSprite;
+let _wasTumbling = false, _wasRising = false;
+updateMarioSprite = function(){
+  const wasR = mJumpState==='rising';
+  _origUpdateMario();
+  // Landed on brick
+  if(wasR && mJumpState==='onBrick') { SFX.land(); SFX.coin(); }
+};
+
+// ── Audio button ──────────────────────────────────────────────
+document.getElementById('audioBtn').addEventListener('click',()=>{
+  audioEnabled = !audioEnabled;
+  document.getElementById('audioBtn').textContent = audioEnabled ? '🔊' : '🔇';
+  if(audioEnabled && _actx) _actx.resume?.();
+});
+
+// ── Back button ───────────────────────────────────────────────
+document.getElementById('backBtn').addEventListener('click',()=>{
+  // Reset to level select without resetting scores in memory
+  document.getElementById('winScreen').style.display='none';
+  document.getElementById('gameOverScreen').style.display='none';
+  document.getElementById('levelSelect').style.display='flex';
+  document.getElementById('backBtn').style.display='none';
+  document.getElementById('diffBadge').style.display='none';
+  dancing = false;
+  dragon  = {active:false,x:0,y:0,vx:0,fireLife:0,phase:'idle',timer:0};
+  mJumpState = 'ground'; mJumpBottom = 70;
+  mSprite.style.bottom = '70px';
+});
+
+// Show back button when game is running
+const _origStartGame = startGame;
+startGame = function(diff){
+  document.getElementById('backBtn').style.display='block';
+  _origStartGame(diff);
+};
+
+// M key toggles sound
+window.addEventListener('keydown',e=>{
+  if(e.key==='m'||e.key==='M'){
+    audioEnabled=!audioEnabled;
+    document.getElementById('audioBtn').textContent=audioEnabled?'🔊':'🔇';
+  }
+});
+
+updateLivesUI();
+</script>
+</body>
+</html>
